@@ -76,7 +76,7 @@ The dashboard contains 4 KPI cards and 4 charts (donut, column, line, bar).
 ![Power Query steps](04_Assets/power_query_steps.png)
 
 ## 🚀 How to Run
-1. Open `03_Power BI/portfolio_1.pbix` in Power BI Desktop.
+1. Open `03_Power BI/DashBoard.pbix` in Power BI Desktop.
 2. To reproduce the cleaning, open the M code files in `02_Power Query/` in Power Query Editor.
    > Note: update the file path in the code to point to your local copy of the raw data.
 
