@@ -1,0 +1,6 @@
+let
+    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WCg12UdJRMrFQitWJVnJ1DwByDCHs0CAg2xQiEewI4hgaQzjuYC0GYI67E0iLmaVSbCwA", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [currency = _t, rate = _t]),
+    #"Changed Type" = Table.TransformColumnTypes(Source,{{"currency", type text}, {"rate", Int64.Type}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"rate", "Amount_Per_EGP"}})
+in
+    #"Renamed Columns"

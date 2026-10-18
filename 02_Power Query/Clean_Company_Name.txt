@@ -1,0 +1,17 @@
+let
+    Source = Excel.Workbook(File.Contents("D:\my files\mahmoud programs\portfilio\Project_1_Cleannig_Data_Power_Query\Messy_Data\Training_Data_1000_Rows.xlsx"), null, true),
+    Raw_Data_Sheet = Source{[Item="Raw_Data",Kind="Sheet"]}[Data],
+    #"Promoted Headers" = Table.PromoteHeaders(Raw_Data_Sheet, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Order_ID", Int64.Type}, {"Customer_Name", type text}, {"Company_Name", type text}, {"Transaction_Date", type text}, {"Amount_Raw", type text}, {"Categories_Skills", type text}, {"Branch_Locale", type text}, {"Status_Notes", type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Changed Type",{{"Customer_Name", Text.Trim, type text}, {"Company_Name", Text.Trim, type text}, {"Categories_Skills", Text.Trim, type text}, {"Branch_Locale", Text.Trim, type text}, {"Status_Notes", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Customer_Name", Text.Clean, type text}, {"Company_Name", Text.Clean, type text}, {"Categories_Skills", Text.Clean, type text}, {"Branch_Locale", Text.Clean, type text}, {"Status_Notes", Text.Clean, type text}}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Cleaned Text",{{"Customer_Name", Text.Proper, type text}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Capitalized Each Word",{"Order_ID", "Customer_Name", "Transaction_Date", "Amount_Raw", "Categories_Skills", "Branch_Locale", "Status_Notes"}),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Columns"),
+    #"Standardized Company Name" = Table.AddColumn(#"Removed Duplicates", "Custom", each if [Company_Name] = "جوجل" then "google" else if [Company_Name] = "أمازون" then "amazon" else if [Company_Name] = "فيسبوك" then "facebook" else if [Company_Name] = "Google LLC" then "google" else if [Company_Name] = "Microsoft Inc." then "microsoft" else if [Company_Name] = "Micro soft" then "microsoft" else if [Company_Name] = "Microsoft Corp" then "microsoft" else if [Company_Name] = "آبل" then "apple" else if [Company_Name] = "مايكروسوفت" then "microsoft" else [Company_Name]),
+    #"Trimmed Text3" = Table.TransformColumns(#"Standardized Company Name",{{"Custom", Text.Trim, type text}}),
+    #"Capitalized Each Word2" = Table.TransformColumns(#"Trimmed Text3",{{"Custom", Text.Proper, type text}}),
+    #"Cleaned Text2" = Table.TransformColumns(#"Capitalized Each Word2",{{"Custom", Text.Clean, type text}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Cleaned Text2",{{"Custom", "Company_Name_Standardized"}})
+in
+    #"Renamed Columns"

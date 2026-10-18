@@ -1,0 +1,37 @@
+let
+    Source = Excel.Workbook(File.Contents("D:\my files\mahmoud programs\portfilio\Project_1_Cleannig_Data_Power_Query\Messy_Data\Training_Data_1000_Rows.xlsx"), null, true),
+    Raw_Data_Sheet = Source{[Item="Raw_Data",Kind="Sheet"]}[Data],
+    #"Promoted Headers" = Table.PromoteHeaders(Raw_Data_Sheet, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Order_ID", Int64.Type}, {"Customer_Name", type text}, {"Company_Name", type text}, {"Transaction_Date", type text}, {"Amount_Raw", type text}, {"Categories_Skills", type text}, {"Branch_Locale", type text}, {"Status_Notes", type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Changed Type",{{"Customer_Name", Text.Trim, type text}, {"Company_Name", Text.Trim, type text}, {"Categories_Skills", Text.Trim, type text}, {"Branch_Locale", Text.Trim, type text}, {"Status_Notes", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Customer_Name", Text.Clean, type text}, {"Company_Name", Text.Clean, type text}, {"Categories_Skills", Text.Clean, type text}, {"Branch_Locale", Text.Clean, type text}, {"Status_Notes", Text.Clean, type text}}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Cleaned Text",{{"Customer_Name", Text.Proper, type text}}),
+    #"Removed Grand and Subtotal rows by fillter" = Table.SelectRows(#"Capitalized Each Word", each ([Status_Notes] <> "GRAND_TOTAL_ROW" and [Status_Notes] <> "SUBTOTAL_ROW")),
+    #"Standardized Company Name" = Table.NestedJoin(#"Removed Grand and Subtotal rows by fillter", {"Company_Name"}, Clean_Company_Name, {"Company_Name"}, "Clean_Company_Name", JoinKind.LeftOuter),
+    #"Expanded Clean_Company_Name" = Table.ExpandTableColumn(#"Standardized Company Name", "Clean_Company_Name", {"Company_Name_Standardized"}, {"Clean_Company_Name.Company_Name_Standardized"}),
+    #"Replaced Value" = Table.ReplaceValue(#"Expanded Clean_Company_Name","-","/",Replacer.ReplaceText,{"Transaction_Date"}),
+    #"Unite the date in georgian" = Table.AddColumn(#"Replaced Value", "Clear_Transaction_Date", each if [Transaction_Date] = null then null 
+else if Text.StartsWith([Transaction_Date],"14" )
+then 
+try Date.FromText([Transaction_Date],"ar-SA") 
+otherwise try Date.FromText([Transaction_Date], "en-GB")
+otherwise Date.FromText([Transaction_Date], "en-US")
+else 
+try Date.FromText([Transaction_Date], "en-US")
+otherwise Date.FromText([Transaction_Date], "en-GB")),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Unite the date in georgian",{{"Clear_Transaction_Date", type date}}),
+    #"Filled Down" = Table.FillDown(#"Changed Type1",{"Clear_Transaction_Date"}),
+    #"Trimmed Text1" = Table.TransformColumns(#"Filled Down",{{"Amount_Raw", Text.Trim, type text}}),
+    #"Cleaned Text1" = Table.TransformColumns(#"Trimmed Text1",{{"Amount_Raw", Text.Clean, type text}}),
+    #"Extract the amount without the simpols" = Table.AddColumn(#"Cleaned Text1", "Amount", each if [Amount_Raw] = null then null  
+else Text.Select([Amount_Raw], {"0".."9",",","."})),
+    #"Added Custom2" = Table.AddColumn(#"Extract the amount without the simpols", "last_cumma", each if [Amount_Raw] = null then null 
+else 
+Text.PositionOf([Amount],",",Occurrence.Last)),
+    #"Changed Type2" = Table.TransformColumnTypes(#"Added Custom2",{{"last_cumma", Int64.Type}}),
+    #"Added Custom3" = Table.AddColumn(#"Changed Type2", "last_dot", each if [Amount_Raw] = null then null else 
+Text.PositionOf([Amount_Raw] , "." , Occurrence.Last)),
+    #"Added Conditional Column" = Table.AddColumn(#"Added Custom3", "amount_format", each if [last_cumma] > [last_dot] then "European" else "Amirican"),
+    #"Replaced Errors" = Table.ReplaceErrorValues(#"Added Conditional Column", {{"amount_format", null}})
+in
+    #"Replaced Errors"
